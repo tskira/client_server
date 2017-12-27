@@ -8,7 +8,7 @@
     {
         int sock;
         struct sockaddr_in server;
-        char message[1000], server_reply[2000];
+        char book_name[1000], server_reply[2000];
 
         sock = socket(AF_INET, SOCK_STREAM, 0);
         if (sock == -1)
@@ -30,12 +30,12 @@
 
         while(1)
         {
-            printf("Entre com a menssagem: ");
-            scanf("%s", message);
+            printf("Entre com o nome do livro: ");
+            scanf("%s", book_name);
             
-            if(send(sock, message, strlen(message), 0) < 0)
+            if(send(sock, book_name, strlen(book_name), 0) < 0)
             {
-                puts("Falha ao enviar\n");
+                puts("Falha ao enviar requisiçao\n");
                 return 1;
             }
             
