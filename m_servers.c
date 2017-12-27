@@ -35,9 +35,6 @@ void *connection_handler(void *);
 
         puts("Aguardando requisicoes . . .\n");
         c = sizeof(struct sockaddr_in);
-
-        puts("Aguardando requisicoes . . .\n");
-        c = sizeof(struct sockaddr_in);
         while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)))
         {
             puts("Conexao aceita\n");
@@ -67,16 +64,25 @@ void *connection_handler(void *);
     {
         int sock = *(int*)socket_desc;
         int read_size;
+        char *insercao_ok = "Novo livro registrado\n";
         char *message, client_message[2000];
+        FILE *fp;
+        /*
         message = "Parabens, eu sou sua conexao\n";
         write(sock, message, strlen(message));
 
         message = "Agora escreva alguma coisa ai \n";
         write(sock, message, strlen(message));
+        */
 
         while((read_size = recv(sock, client_message, 2000, 0)) > 0)
         {
-            write(sock, client_message, strlen(client_message));
+            int size_register = strlen(client_message);
+            fp = fopen("memoria_compartilhada.txt", "a+");
+            fwrite(&size_register, sizeof(int), 1, fp);
+            fwrite(client_message, size_register, 1, fp);
+            fclose(fp);
+            write(sock, insercao_ok, strlen(insercao_ok));
         }
 
         if(read_size == 0)
