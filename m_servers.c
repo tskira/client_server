@@ -90,10 +90,7 @@ void *connection_handler(void *);
                     memset(client_message, '\0', strlen(client_message));
                     write(sock, insercao_ok, strlen(insercao_ok));
                 }
-                else
-                {
-                    write(sock, nenhum_cadastro, strlen(nenhum_cadastro));
-                }
+
             }
             else if(!strcmp(client_message, "buscar"))
             {
@@ -103,10 +100,14 @@ void *connection_handler(void *);
                 {   
                     int tam;
                     char read_buffer[2000];
+                    client_message[strlen(client_message) - 1] = '\0';     
                     fp = fopen("memoria_compartilhada.txt", "r");
+                    rewind(fp);
+                    found = 0;
                     while(fread(&tam, sizeof(int), 1, fp) && !found)
                     {
                         fread(read_buffer, tam, 1, fp);
+                        printf("%s\n", read_buffer);
                         if(!strcmp(client_message, read_buffer))
                         {
                             found = 1;
@@ -118,6 +119,8 @@ void *connection_handler(void *);
                     {
                         write(sock, nenhum_cadastro, strlen(nenhum_cadastro));
                     }
+                    memset(client_message, '\0', strlen(client_message));
+                    fclose(fp);
 
                 }
                 else
