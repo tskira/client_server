@@ -64,9 +64,11 @@ void *connection_handler(void *);
     {
         int sock = *(int*)socket_desc;
         int read_size;
+        int found = 0;
         char *insercao_ok = "Novo livro registrado\n";
         char *requsicao_desconhecida = "Comando desconhecido\n";
         char *solicita_cadastro = "Entre com o nome do livro: ";
+        char *solicita_busca = "Entre com o nome do livro a ser buscado: ";
         char *nenhum_cadastro = "Nenhum cadastro recebido\n";
         char *message, client_message[2000];
         FILE *fp;
@@ -79,10 +81,11 @@ void *connection_handler(void *);
                 write(sock, solicita_cadastro, strlen(solicita_cadastro));
                 if((read_size = recv(sock, client_message, 2000, 0)) > 0)
                 {
+                    client_message[strlen(client_message) - 1] = '\0';  
                     int size_register = strlen(client_message);
                     fp = fopen("memoria_compartilhada.txt", "a+");
                     fwrite(&size_register, sizeof(int), 1, fp);
-                    fwrite(client_message, size_register, 1, fp);
+                    fwrite(client_message, strlen(client_message), 1, fp);
                     fclose(fp);
                     memset(client_message, '\0', strlen(client_message));
                     write(sock, insercao_ok, strlen(insercao_ok));
@@ -92,10 +95,35 @@ void *connection_handler(void *);
                     write(sock, nenhum_cadastro, strlen(nenhum_cadastro));
                 }
             }
-            else if(strcmp(client_message, "buscar"))
+            else if(!strcmp(client_message, "buscar"))
             {
-                write(sock, nenhum_cadastro, strlen(nenhum_cadastro));
-                continue;
+                memset(client_message, '\0', strlen(client_message));
+                write(sock, solicita_busca, strlen(solicita_busca));
+                if((read_size = recv(sock, client_message, 2000, 0)) > 0)
+                {   
+                    int tam;
+                    char read_buffer[2000];
+                    fp = fopen("memoria_compartilhada.txt", "r");
+                    while(fread(&tam, sizeof(int), 1, fp) && !found)
+                    {
+                        fread(read_buffer, tam, 1, fp);
+                        if(!strcmp(client_message, read_buffer))
+                        {
+                            found = 1;
+                            write(sock, read_buffer, strlen(read_buffer));
+                        }
+                        memset(read_buffer, '\0', strlen(read_buffer));
+                    }
+                    if(!found)
+                    {
+                        write(sock, nenhum_cadastro, strlen(nenhum_cadastro));
+                    }
+
+                }
+                else
+                {
+                    write(sock, nenhum_cadastro, strlen(nenhum_cadastro));
+                }
             }
             else
             {
