@@ -6,13 +6,20 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <sys/types.h>
-/*asdasd*/
+#include <semaphore.h>
+
+sem_t semaphore_server;
+        
+
 void *connection_handler(void *);
 
     int main()
     {
-        int socket_desc, client_sock, c, *new_sock;
+        int socket_desc, client_sock, c, *new_sock, nbytes;
         struct sockaddr_in server, client;
+        int fd[2];
+        char readbuffer[1000];
+        sem_init(&semaphore_server, 0, 2);
 
         socket_desc = socket(AF_INET, SOCK_STREAM, 0);
         if (socket_desc == -1)
@@ -33,26 +40,34 @@ void *connection_handler(void *);
         puts("Bind feito\n");
 
         listen(socket_desc, 3);
-
+        pipe(fd);
         puts("Aguardando requisicoes . . .\n");
         c = sizeof(struct sockaddr_in);
         while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)))
         {
-            puts("Conexao aceita\n");
             pid_t pid = fork();
+            if(pid == -1)
+            {
+                perror("Fork error\n");
+                return 1;
+            }
+
             if(pid == 0)
             {
-                printf("novo pid: %d\n", pid);
                 pthread_t sniffer_thread;
                 new_sock = malloc(1);
-                *new_sock = client_sock;
-
+                *new_sock = client_sock;   
                 if(pthread_create(&sniffer_thread, NULL, connection_handler, (void*)new_sock) < 0)
                 {
                     perror("Nao foi possivel criar thread\n");
                     return 1;
                 }
-                puts("Associado\n");
+                write(fd[1], "Conexao com o cliente estabelecida\n", (strlen("Conexao com o cliente estabelecida\n")));
+            }
+            else
+            {
+                nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
+                printf("%s", readbuffer);
             }
             
         }
@@ -70,6 +85,7 @@ void *connection_handler(void *);
     {
         int sock = *(int*)socket_desc;
         int read_size;
+        int a;
         int found = 0;
         char *insercao_ok = "Novo livro registrado\n";
         char *requsicao_desconhecida = "Comando desconhecido\n";
@@ -78,9 +94,10 @@ void *connection_handler(void *);
         char *nenhum_cadastro = "Nenhum cadastro recebido\n";
         char *message, client_message[2000];
         FILE *fp;
-
+        
         while((read_size = recv(sock, client_message, 2000, 0)) > 0)
         {
+            sem_wait(&semaphore_server);
             if(!strcmp(client_message, "cadastrar"))
             {
                 memset(client_message, '\0', strlen(client_message));
@@ -100,6 +117,8 @@ void *connection_handler(void *);
             }
             else if(!strcmp(client_message, "buscar"))
             {
+                sem_getvalue(&semaphore_server, &a);
+                printf("%d\n", a);
                 memset(client_message, '\0', strlen(client_message));
                 write(sock, solicita_busca, strlen(solicita_busca));
                 if((read_size = recv(sock, client_message, 2000, 0)) > 0)
@@ -113,7 +132,6 @@ void *connection_handler(void *);
                     while(fread(&tam, sizeof(int), 1, fp) && !found)
                     {
                         fread(read_buffer, tam, 1, fp);
-                        printf("%s\n", read_buffer);
                         if(!strcmp(client_message, read_buffer))
                         {
                             found = 1;
@@ -138,6 +156,7 @@ void *connection_handler(void *);
             {
                 write(sock, requsicao_desconhecida, strlen(requsicao_desconhecida));
             }
+            sem_post(&semaphore_server);
 
         }
 

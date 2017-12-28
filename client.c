@@ -32,8 +32,9 @@
         while(1)
         {
             printf("Entre com a requisicao (cadastrar/buscar): ");
-            scanf("%s", acao);
-            clean_buffer = getchar();
+            //scanf("%s", acao);
+            //clean_buffer = getchar();
+            strcpy(acao, "buscar");
             if(!strcmp(acao, "cadastrar"))
             {
                 if(send(sock, acao, strlen(acao), 0) < 0)
@@ -53,6 +54,7 @@
                 {
                     memset(server_reply, '\0', strlen(server_reply));
                     fgets(book_name, 1000, stdin);
+                    
                     if(send(sock, book_name, strlen(book_name), 0) < 0)
                     {
                         puts("Falha ao enviar requisicao\n");
@@ -87,7 +89,8 @@
                 if(!strcmp(server_reply, "Entre com o nome do livro a ser buscado: "))
                 {
                     memset(server_reply, '\0', strlen(server_reply));
-                    fgets(book_name, 1000, stdin);
+                    //fgets(book_name, 1000, stdin);
+                    strcpy(book_name,"acer\n");
                     if(send(sock, book_name, strlen(book_name), 0) < 0)
                     {
                         puts("Falha ao enviar requisicao\n");
