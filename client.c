@@ -9,6 +9,7 @@
         int sock;
         struct sockaddr_in server;
         char book_name[1000], server_reply[2000];
+        char acao[1000];
 
         sock = socket(AF_INET, SOCK_STREAM, 0);
         if (sock == -1)
@@ -28,25 +29,55 @@
         }
         puts("Conectado\n");
 
+        printf("Entre com a requisicao (cadastrar/buscar): ");
         while(1)
         {
-            printf("Entre com o nome do livro: ");
-            scanf("%s", book_name);
-            
-            if(send(sock, book_name, strlen(book_name), 0) < 0)
-            {
-                puts("Falha ao enviar requisiçao\n");
-                return 1;
-            }
-            
-            if(recv(sock, server_reply, 2000, 0) < 0)
-            {
-                puts("recv falhou\n");
-                break;
-            }
+            scanf("%s", acao);
 
-            puts("Resposta do servidor: ");
-            puts(server_reply);
+            if(!strcmp(acao, "cadastrar"))
+            {
+                if(send(sock, acao, strlen(acao), 0) < 0)
+                {
+                    puts("Falha ao enviar requisicao\n");
+                    return 1;
+                }
+                memset(acao, '\0', strlen(acao));
+                if(recv(sock, server_reply, 2000, 0) < 0)
+                {
+                    puts("recv falhou\n");
+                    break;
+                }
+
+                puts(server_reply);
+                if(!strcmp(server_reply, "Entre com o nome do livro: "))
+                {
+                    memset(server_reply, '\0', strlen(server_reply));
+                    scanf("%s", book_name);
+                
+                    if(send(sock, book_name, strlen(book_name), 0) < 0)
+                    {
+                        puts("Falha ao enviar requisicao\n");
+                        return 1;
+                    }
+                    
+                    if(recv(sock, server_reply, 2000, 0) < 0)
+                    {
+                        puts("recv falhou\n");
+                        break;
+                    }
+                    memset(book_name, '\0', strlen(book_name));   
+                    puts(server_reply);
+                    memset(server_reply, '\0', strlen(server_reply));
+                }
+            }
+            else if(!strcmp(acao, "buscar"))
+            {
+                printf("Entre com o nome do livro a ser buscado: ");
+            }
+            else
+            {
+                printf("Comando nao identificado\n");
+            }
         }
         close(sock);
         return 0;

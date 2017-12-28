@@ -65,24 +65,43 @@ void *connection_handler(void *);
         int sock = *(int*)socket_desc;
         int read_size;
         char *insercao_ok = "Novo livro registrado\n";
+        char *requsicao_desconhecida = "Comando desconhecido\n";
+        char *solicita_cadastro = "Entre com o nome do livro: ";
+        char *nenhum_cadastro = "Nenhum cadastro recebido\n";
         char *message, client_message[2000];
         FILE *fp;
-        /*
-        message = "Parabens, eu sou sua conexao\n";
-        write(sock, message, strlen(message));
-
-        message = "Agora escreva alguma coisa ai \n";
-        write(sock, message, strlen(message));
-        */
 
         while((read_size = recv(sock, client_message, 2000, 0)) > 0)
         {
-            int size_register = strlen(client_message);
-            fp = fopen("memoria_compartilhada.txt", "a+");
-            fwrite(&size_register, sizeof(int), 1, fp);
-            fwrite(client_message, size_register, 1, fp);
-            fclose(fp);
-            write(sock, insercao_ok, strlen(insercao_ok));
+            if(!strcmp(client_message, "cadastrar"))
+            {
+                memset(client_message, '\0', strlen(client_message));
+                write(sock, solicita_cadastro, strlen(solicita_cadastro));
+                if((read_size = recv(sock, client_message, 2000, 0)) > 0)
+                {
+                    int size_register = strlen(client_message);
+                    fp = fopen("memoria_compartilhada.txt", "a+");
+                    fwrite(&size_register, sizeof(int), 1, fp);
+                    fwrite(client_message, size_register, 1, fp);
+                    fclose(fp);
+                    memset(client_message, '\0', strlen(client_message));
+                    write(sock, insercao_ok, strlen(insercao_ok));
+                }
+                else
+                {
+                    write(sock, nenhum_cadastro, strlen(nenhum_cadastro));
+                }
+            }
+            else if(strcmp(client_message, "buscar"))
+            {
+                write(sock, nenhum_cadastro, strlen(nenhum_cadastro));
+                continue;
+            }
+            else
+            {
+                write(sock, requsicao_desconhecida, strlen(requsicao_desconhecida));
+            }
+
         }
 
         if(read_size == 0)
