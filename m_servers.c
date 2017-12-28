@@ -5,6 +5,7 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <sys/types.h>
 
 void *connection_handler(void *);
 
@@ -38,17 +39,22 @@ void *connection_handler(void *);
         while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)))
         {
             puts("Conexao aceita\n");
-
-            pthread_t sniffer_thread;
-            new_sock = malloc(1);
-            *new_sock = client_sock;
-
-            if(pthread_create(&sniffer_thread, NULL, connection_handler, (void*)new_sock) < 0)
+            pid_t pid = fork();
+            if(pid == 0)
             {
-                perror("Nao foi possivel criar thread\n");
-                return 1;
+                printf("novo pid: %d\n", pid);
+                pthread_t sniffer_thread;
+                new_sock = malloc(1);
+                *new_sock = client_sock;
+
+                if(pthread_create(&sniffer_thread, NULL, connection_handler, (void*)new_sock) < 0)
+                {
+                    perror("Nao foi possivel criar thread\n");
+                    return 1;
+                }
+                puts("Associado\n");
             }
-            puts("Associado\n");
+            
         }
 
         if(client_sock < 0)

@@ -107,7 +107,6 @@
             else
             {
                 printf("Comando nao identificado\n");
-                printf(" ... \n");
             }
         }
         close(sock);
