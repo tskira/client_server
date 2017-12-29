@@ -10,6 +10,8 @@
         struct sockaddr_in server;
         char book_name[1000], server_reply[2000];
         char acao[1000], clean_buffer;
+        char field[1000];
+        char *campo;
 
         sock = socket(AF_INET, SOCK_STREAM, 0);
         if (sock == -1)
@@ -32,9 +34,8 @@
         while(1)
         {
             printf("Entre com a requisicao (cadastrar/buscar): ");
-            //scanf("%s", acao);
-            //clean_buffer = getchar();
-            strcpy(acao, "buscar");
+            scanf("%s", acao);
+            clean_buffer = getchar();
             if(!strcmp(acao, "cadastrar"))
             {
                 if(send(sock, acao, strlen(acao), 0) < 0)
@@ -54,7 +55,18 @@
                 {
                     memset(server_reply, '\0', strlen(server_reply));
                     fgets(book_name, 1000, stdin);
-                    
+                    book_name[strlen(book_name) - 1] = '\0';
+                    printf("Entre com o autor: \n");
+                    fgets(field, 1000, stdin);
+                    field[strlen(field) - 1] = '\0';
+                    strcat(book_name, "|");
+                    strcat(book_name, field);
+                    memset(field, '\0', strlen(field));
+                    printf("Entre com o ano de publicacao: \n");
+                    fgets(field,1000,stdin);
+                    strcat(book_name, "|");
+                    strcat(book_name, field);
+                    memset(field, '\0', strlen(field));
                     if(send(sock, book_name, strlen(book_name), 0) < 0)
                     {
                         puts("Falha ao enviar requisicao\n");
@@ -89,8 +101,7 @@
                 if(!strcmp(server_reply, "Entre com o nome do livro a ser buscado: "))
                 {
                     memset(server_reply, '\0', strlen(server_reply));
-                    //fgets(book_name, 1000, stdin);
-                    strcpy(book_name,"acer\n");
+                    fgets(book_name, 1000, stdin);
                     if(send(sock, book_name, strlen(book_name), 0) < 0)
                     {
                         puts("Falha ao enviar requisicao\n");
@@ -103,7 +114,15 @@
                         break;
                     }
                     memset(book_name, '\0', strlen(book_name));   
-                    puts(server_reply);
+                    //puts(server_reply);
+                    printf("\n");
+                    campo = strtok(server_reply, "|");
+                    printf("Titulo: %s\n", campo);
+                    campo = strtok(NULL, "|");
+                    printf("Autor: %s\n", campo);
+                    campo = strtok(NULL, "|");
+                    printf("Ano de publicacao: %s\n", campo);
+                    campo = NULL;
                     memset(server_reply, '\0', strlen(server_reply));
                 }
             }

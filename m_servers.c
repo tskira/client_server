@@ -19,7 +19,7 @@ void *connection_handler(void *);
         struct sockaddr_in server, client;
         int fd[2];
         char readbuffer[1000];
-        sem_init(&semaphore_server, 0, 2);
+        sem_init(&semaphore_server, 0, 1);
 
         socket_desc = socket(AF_INET, SOCK_STREAM, 0);
         if (socket_desc == -1)
@@ -45,31 +45,15 @@ void *connection_handler(void *);
         c = sizeof(struct sockaddr_in);
         while((client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)))
         {
-            pid_t pid = fork();
-            if(pid == -1)
+            pthread_t sniffer_thread;
+            new_sock = malloc(1);
+            *new_sock = client_sock;   
+            if(pthread_create(&sniffer_thread, NULL, connection_handler, (void*)new_sock) < 0)
             {
-                perror("Fork error\n");
+                perror("Nao foi possivel criar thread\n");
                 return 1;
             }
-
-            if(pid == 0)
-            {
-                pthread_t sniffer_thread;
-                new_sock = malloc(1);
-                *new_sock = client_sock;   
-                if(pthread_create(&sniffer_thread, NULL, connection_handler, (void*)new_sock) < 0)
-                {
-                    perror("Nao foi possivel criar thread\n");
-                    return 1;
-                }
-                write(fd[1], "Conexao com o cliente estabelecida\n", (strlen("Conexao com o cliente estabelecida\n")));
-            }
-            else
-            {
-                nbytes = read(fd[0], readbuffer, sizeof(readbuffer));
-                printf("%s", readbuffer);
-            }
-            
+            puts("Conexao estabelecida\n");
         }
 
         if(client_sock < 0)
@@ -92,11 +76,13 @@ void *connection_handler(void *);
         char *solicita_cadastro = "Entre com o nome do livro: ";
         char *solicita_busca = "Entre com o nome do livro a ser buscado: ";
         char *nenhum_cadastro = "Nenhum cadastro recebido\n";
-        char *message, client_message[2000];
+        char *message, client_message[2000], save_buffer[2000];
+        char *field;
         FILE *fp;
         
         while((read_size = recv(sock, client_message, 2000, 0)) > 0)
         {
+
             sem_wait(&semaphore_server);
             if(!strcmp(client_message, "cadastrar"))
             {
@@ -132,12 +118,16 @@ void *connection_handler(void *);
                     while(fread(&tam, sizeof(int), 1, fp) && !found)
                     {
                         fread(read_buffer, tam, 1, fp);
-                        if(!strcmp(client_message, read_buffer))
+                        strcpy(save_buffer, read_buffer);
+                        field = strtok(save_buffer, "|");
+                        if(!strcmp(client_message, field))
                         {
+                            //printf("%s\n", read_buffer);
                             found = 1;
                             write(sock, read_buffer, strlen(read_buffer));
                         }
                         memset(read_buffer, '\0', strlen(read_buffer));
+                        memset(save_buffer, '\0', strlen(save_buffer));
                     }
                     if(!found)
                     {
