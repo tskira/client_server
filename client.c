@@ -1,3 +1,7 @@
+/*
+ * Cliente
+ * Funciona para duas funcoes: casdastrar e buscar
+ */
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>

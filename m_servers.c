@@ -9,7 +9,6 @@
 #include <semaphore.h>
 
 sem_t semaphore_server;
-        
 
 void *connection_handler(void *);
 
