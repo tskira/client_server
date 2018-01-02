@@ -7,6 +7,9 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <semaphore.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <signal.h>
 
 sem_t semaphore_server;
 
@@ -76,9 +79,15 @@ void *connection_handler(void *);
         char *solicita_busca = "Entre com o nome do livro a ser buscado: ";
         char *nenhum_cadastro = "Nenhum cadastro recebido\n";
         char *message, client_message[2000], save_buffer[2000];
+        char new_register[2000];
         char *field;
+        char *myfifo = "/tmp/myfifo";
         FILE *fp;
-        
+        int fd1, fd2;
+        pid_t childpid;
+
+        mkfifo(myfifo, 0666);
+
         while((read_size = recv(sock, client_message, 2000, 0)) > 0)
         {
 
@@ -89,14 +98,36 @@ void *connection_handler(void *);
                 write(sock, solicita_cadastro, strlen(solicita_cadastro));
                 if((read_size = recv(sock, client_message, 2000, 0)) > 0)
                 {
-                    client_message[strlen(client_message) - 1] = '\0';  
-                    int size_register = strlen(client_message);
-                    fp = fopen("memoria_compartilhada.txt", "a+");
-                    fwrite(&size_register, sizeof(int), 1, fp);
-                    fwrite(client_message, strlen(client_message), 1, fp);
-                    fclose(fp);
+                    if((childpid = fork()) == -1)
+                    {
+                        perror("erro no fork\n");
+                        exit(1);
+                    }
+
+                    if(childpid > 0)
+                    {
+                        printf("\nEsta no pai\n");
+                        client_message[strlen(client_message) - 1] = '\0';
+                        fd1 = open(myfifo, O_WRONLY);
+                        write(fd1, client_message, strlen(client_message));
+                        close(fd1);
+                    }
+                    if(childpid == 0)
+                    {   
+                        printf("Esta no filho\n");
+                        fd2 = open(myfifo, O_RDONLY);
+                        read(fd2, new_register, 2000);
+                        close(fd2);
+                        int size_register = strlen(new_register);
+                        fp = fopen("memoria_compartilhada.txt", "a+");
+                        fwrite(&size_register, sizeof(int), 1, fp);
+                        fwrite(new_register, strlen(new_register), 1, fp);
+                        fclose(fp);
+                        memset(new_register, '\0', strlen(new_register));
+                        write(sock, insercao_ok, strlen(insercao_ok));
+                        exit(0);
+                    }
                     memset(client_message, '\0', strlen(client_message));
-                    write(sock, insercao_ok, strlen(insercao_ok));
                 }
 
             }
